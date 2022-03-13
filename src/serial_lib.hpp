@@ -48,3 +48,33 @@ void print_matrix(Matrix &m) {
 		printf("\n");
 	}
 }
+
+int get_matrix_datarange(Matrix &m) {
+	int max = DATAMIN;
+	int min = DATAMAX;
+	for (int i = 0; i < m.row_eff; i++) {
+		for (int j = 0; j < m.col_eff; j++) {
+			int el = m.mat[i][j];
+			if (el > max) max = el;
+			if (el < min) min = el;
+		}
+	}
+
+	return max - min;
+}
+
+int get_median(int *n, int length) {
+	int mid = length / 2;
+	if (length & 1) return n[mid];
+
+	return (n[mid - 1] + n[mid]) / 2;
+}
+
+long get_floored_mean(int *n, int length) {
+	long sum = 0;
+	for (int i = 0; i < length; i++) {
+		sum += n[i];
+	}
+
+	return sum / length;
+}

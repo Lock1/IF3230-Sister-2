@@ -7,11 +7,11 @@
 #define DATAMAX 1000
 #define DATAMIN -1000
 
-/* 
+/*
  * Struct Matrix
  *
- * Matrix representation consists of matrix data 
- * and effective dimensions 
+ * Matrix representation consists of matrix data
+ * and effective dimensions
  * */
 typedef struct Matrix {
 	int mat[NMAX][NMAX];	// Matrix cells
@@ -20,12 +20,12 @@ typedef struct Matrix {
 } Matrix;
 
 
-/* 
+/*
  * Procedure init_matrix
- * 
+ *
  * Initializing newly allocated matrix
  * Setting all data to 0 and effective dimensions according
- * to nrow and ncol 
+ * to nrow and ncol
  * */
 void init_matrix(Matrix *m, int nrow, int ncol) {
 	m->row_eff = nrow;
@@ -39,7 +39,7 @@ void init_matrix(Matrix *m, int nrow, int ncol) {
 }
 
 
-/* 
+/*
  * Function input_matrix
  *
  * Returns a matrix with values from stdin input
@@ -58,9 +58,9 @@ Matrix input_matrix(int nrow, int ncol) {
 }
 
 
-/* 
+/*
  * Procedure print_matrix
- * 
+ *
  * Print matrix data
  * */
 void print_matrix(Matrix *m) {
@@ -73,7 +73,7 @@ void print_matrix(Matrix *m) {
 }
 
 
-/* 
+/*
  * Function get_matrix_datarange
  *
  * Returns the range between maximum and minimum
@@ -112,7 +112,7 @@ int supression_op(Matrix *kernel, Matrix *target, int row, int col) {
 }
 
 
-/* 
+/*
  * Function convolution
  *
  * Return the output matrix of convolution operation
@@ -122,7 +122,7 @@ Matrix convolution(Matrix *kernel, Matrix *target) {
 	Matrix out;
 	int out_row_eff = target->row_eff - kernel->row_eff + 1;
 	int out_col_eff = target->col_eff - kernel->col_eff + 1;
-	
+
 	init_matrix(&out, out_row_eff, out_col_eff);
 
 	for (int i = 0; i < out.row_eff; i++) {
@@ -169,11 +169,11 @@ void merge_array(int *n, int left, int mid, int right) {
 	}
 	while (iter_right < n_right) {
 		n[iter_merged++] = arr_right[iter_right++];
-	} 
+	}
 }
 
 
-/* 
+/*
  * Procedure merge_sort
  *
  * Sorts array n with merge sort algorithm
@@ -186,11 +186,11 @@ void merge_sort(int *n, int left, int right) {
 		merge_sort(n, mid + 1, right);
 
 		merge_array(n, left, mid, right);
-	}	
+	}
 }
- 
 
-/* 
+
+/*
  * Procedure print_array
  *
  * Prints all elements of array n of size to stdout
@@ -201,7 +201,7 @@ void print_array(int *n, int size) {
 }
 
 
-/* 
+/*
  * Function get_median
  *
  * Returns median of array n of length
@@ -214,7 +214,7 @@ int get_median(int *n, int length) {
 }
 
 
-/* 
+/*
  * Function get_floored_mean
  *
  * Returns floored mean from an array of integers
@@ -233,37 +233,37 @@ long get_floored_mean(int *n, int length) {
 // main() driver
 int main() {
 	int kernel_row, kernel_col, target_row, target_col, num_targets;
-	
+
 	// reads kernel's row and column and initalize kernel matrix from input
 	scanf("%d %d", &kernel_row, &kernel_col);
 	Matrix kernel = input_matrix(kernel_row, kernel_col);
-	
+
 	// reads number of target matrices and their dimensions.
 	// initialize array of matrices and array of data ranges (int)
 	scanf("%d %d %d", &num_targets, &target_row, &target_col);
 	Matrix* arr_mat = (Matrix*)malloc(num_targets * sizeof(Matrix));
 	int arr_range[num_targets];
-	
+
 	// read each target matrix, compute their convolution matrices, and compute their data ranges
 	for (int i = 0; i < num_targets; i++) {
 		arr_mat[i] = input_matrix(target_row, target_col);
 		arr_mat[i] = convolution(&kernel, &arr_mat[i]);
-		arr_range[i] = get_matrix_datarange(&arr_mat[i]); 
+		arr_range[i] = get_matrix_datarange(&arr_mat[i]);
 	}
 
 	// sort the data range array
 	merge_sort(arr_range, 0, num_targets - 1);
-	
-	int median = get_median(arr_range, num_targets);	
-	int floored_mean = get_floored_mean(arr_range, num_targets); 
+
+	int median = get_median(arr_range, num_targets);
+	int floored_mean = get_floored_mean(arr_range, num_targets);
 
 	// print the min, max, median, and floored mean of data range array
-	printf("%d\n%d\n%d\n%d\n", 
-			arr_range[0], 
-			arr_range[num_targets - 1], 
-			median, 
+	printf("%d\n%d\n%d\n%d\n",
+			arr_range[0],
+			arr_range[num_targets - 1],
+			median,
 			floored_mean);
 
-	
+
 	return 0;
 }
