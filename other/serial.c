@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define NMAX 100
 #define DATAMAX 1000
@@ -231,7 +232,9 @@ long get_floored_mean(int *n, int length) {
 
 
 // main() driver
-int main() {
+int main(int argc, char const *argv[]) {
+	clock_t timer;
+	timer = clock();
 	int kernel_row, kernel_col, target_row, target_col, num_targets;
 
 	// reads kernel's row and column and initalize kernel matrix from input
@@ -264,6 +267,11 @@ int main() {
 			median,
 			floored_mean);
 
+	if (argc > 1) {
+        timer = clock() - timer;
+        double time_elapsed = ((double) timer) / CLOCKS_PER_SEC;
+        printf("Time elapsed %f\n", time_elapsed);
+    }
 
 	return 0;
 }

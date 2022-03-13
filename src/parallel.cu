@@ -9,6 +9,22 @@
 #include "serial_lib.hpp"
 using namespace std;
 
+// Range calculation
+__device__ int range_calculation(Matrix *d_result) {
+    int max = DATAMIN;
+	int min = DATAMAX;
+	for (int i = 0; i < d_result[blockIdx.x].row_eff; i++) {
+		for (int j = 0; j < d_result[blockIdx.x].col_eff; j++) {
+			int el = d_result[blockIdx.x].mat[i][j];
+			if (el > max) max = el;
+			if (el < min) min = el;
+		}
+	}
+
+	return max - min;
+}
+
+// Convolution
 __device__ int supression_op(Matrix &kernel, Matrix &target, int row, int col) {
 	int intermediate_sum = 0;
 	for (int i = 0; i < kernel.row_eff; i++)
@@ -18,7 +34,7 @@ __device__ int supression_op(Matrix &kernel, Matrix &target, int row, int col) {
 	return intermediate_sum;
 }
 
-__global__ void convolution(Matrix *d_kernel, Matrix *d_target, Matrix *d_result) {
+__global__ void convolution(Matrix *d_kernel, Matrix *d_target, Matrix *d_result, int *d_ranges) {
     __shared__ Matrix kernel;
     kernel = *d_kernel;
     int target_row = d_target[0].row_eff;
@@ -31,10 +47,18 @@ __global__ void convolution(Matrix *d_kernel, Matrix *d_target, Matrix *d_result
             d_result[blockIdx.x].mat[i][j] = inter_sum;
         }
     }
+
+    __syncthreads();
+    if (threadIdx.x == 0 && threadIdx.y == 0)
+        d_ranges[blockIdx.x] = range_calculation(d_result);
 }
 
+
+
+
+
 int cmpfunc(void const *a, void const *b) {
-   return *(int*)a - *(int*)b;
+    return *(int*)a - *(int*)b;
 }
 
 void compute_convolution(ifstream &fs) {
@@ -69,20 +93,20 @@ void compute_convolution(ifstream &fs) {
     cudaMalloc((void **) &d_result, sizeof(Matrix)*num_targets);
     cudaMemcpy(d_result, result_container, sizeof(Matrix)*num_targets, cudaMemcpyHostToDevice);
 
-    // Device execution
+    int *d_ranges;
+    cudaMalloc((void **) &d_ranges, sizeof(int)*num_targets);
+
+    // Device execution, convolution & range calculation
     dim3 gridDim(num_targets);
     dim3 blockDim(BLOCK_LENGTH, BLOCK_LENGTH);
-    convolution<<<gridDim, blockDim>>>(d_kernel, d_target, d_result);
+    convolution<<<gridDim, blockDim>>>(d_kernel, d_target, d_result, d_ranges);
     cudaDeviceSynchronize();
 
     // Result processing
-    cudaError err = cudaMemcpy(result_container, d_result, sizeof(Matrix)*num_targets, cudaMemcpyDeviceToHost);
+    int *matrix_ranges = new int[num_targets];
+    cudaError err = cudaMemcpy(matrix_ranges, d_ranges, sizeof(int)*num_targets, cudaMemcpyDeviceToHost);
     if (err != cudaSuccess)
         printf("CUDA error copying to Host: %s\n", cudaGetErrorString(err));
-
-    int *matrix_ranges = new int[num_targets];
-    for (int i = 0; i < num_targets; i++)
-        matrix_ranges[i] = get_matrix_datarange(result_container[i]);
 
     qsort(matrix_ranges, num_targets, sizeof(int), cmpfunc);
 
@@ -95,17 +119,20 @@ void compute_convolution(ifstream &fs) {
             median,
             floored_mean);
 
-
     // Release memory
     delete target_container;
     delete result_container;
+    delete matrix_ranges;
     cudaFree(d_kernel);
     cudaFree(d_target);
     cudaFree(d_result);
+    cudaFree(d_ranges);
 }
 
 
 int main(int argc, char const *argv[]) {
+    clock_t timer;
+    timer = clock();
     ifstream fs(argv[1]);
 
     if (argc > 1 && fs.is_open()) {
@@ -115,6 +142,12 @@ int main(int argc, char const *argv[]) {
     else {
         cout << "parallel: Failed to open file\n";
         exit(1);
+    }
+
+    if (argc > 2) {
+        timer = clock() - timer;
+        double time_elapsed = ((double) timer) / CLOCKS_PER_SEC;
+        printf("Time elapsed %f\n", time_elapsed);
     }
 
     return 0;
