@@ -13,4 +13,4 @@ test-serial: serial
 	cat other/testcase/K04-06-TC4 | ./bin/serial > result/K04-06-TC4_serial.txt
 
 test-parallel: parallel
-	./bin/parallel
+	./bin/parallel other/testcase/K04-06-TC1

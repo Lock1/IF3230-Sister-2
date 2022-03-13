@@ -1,7 +1,52 @@
 #include <iostream>
+#include <fstream>
+#include <string>
+
+#include <stdio.h>
+
+#include "serial_lib.hpp"
+using namespace std;
+
+__global__ void convolution(Matrix *d_kernel) {
+    __shared__ Matrix kernel;
+    kernel = *d_kernel;
+    __syncthreads();
+
+    // printf("<%d, %d> %d\n", threadIdx.x, threadIdx.y, kernel.mat[threadIdx.x][threadIdx.y]);
+}
+
+void compute_convolution(ifstream &fs) {
+    int kernel_row, kernel_col, target_row, target_col, num_targets;
+    Matrix kernel;
+
+    fs >> kernel_row >> kernel_col;
+    kernel = input_matrix(fs, kernel_row, kernel_col);
+
+    fs >> num_targets >> target_row >> target_col;
+
+    Matrix *d_kernel;
+    cudaMalloc((void **) &d_kernel, sizeof(Matrix));
+    cudaMemcpy(d_kernel, &kernel, sizeof(Matrix), cudaMemcpyHostToDevice);
+
+    dim3 gridDim(1);
+    dim3 blockDim(16, 16);
+    convolution<<<gridDim, blockDim>>>(d_kernel);
+    cudaDeviceSynchronize();
+}
+
 
 int main(int argc, char const *argv[]) {
-    std::cout << "abc\n";
+    ifstream fs(argv[1]);
+
+    if (argc > 1 && fs.is_open()) {
+        compute_convolution(fs);
+        fs.close();
+    }
+    else {
+        cout << "parallel: Failed to open file\n";
+        exit(1);
+    }
+
     return 0;
 }
 
