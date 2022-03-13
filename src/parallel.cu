@@ -7,12 +7,19 @@
 #include "serial_lib.hpp"
 using namespace std;
 
-__global__ void convolution(Matrix *d_kernel) {
+__global__ void convolution(Matrix *d_kernel, Matrix *d_target, Matrix *d_result) {
     __shared__ Matrix kernel;
     kernel = *d_kernel;
     __syncthreads();
 
-    // printf("<%d, %d> %d\n", threadIdx.x, threadIdx.y, kernel.mat[threadIdx.x][threadIdx.y]);
+    // TODO : Processing
+
+    // d_result[blockIdx.x].mat[threadIdx.x][threadIdx.y] = 4;
+    // d_result[blockIdx.x].row_eff = d_target[blockIdx.x].row_eff;
+    // d_result[blockIdx.x].col_eff = d_target[blockIdx.x].col_eff;
+
+    // if (threadIdx.x == 0 && threadIdx.y == 0)
+        // printf("%d:<%d, %d> %d\n", blockIdx.x, threadIdx.x, threadIdx.y, d_target[blockIdx.x].mat[0][0]);
 }
 
 void compute_convolution(ifstream &fs) {
@@ -28,10 +35,35 @@ void compute_convolution(ifstream &fs) {
     cudaMalloc((void **) &d_kernel, sizeof(Matrix));
     cudaMemcpy(d_kernel, &kernel, sizeof(Matrix), cudaMemcpyHostToDevice);
 
-    dim3 gridDim(1);
+    Matrix *target_container = new Matrix[num_targets];
+    for (int i = 0; i < num_targets; i++)
+        target_container[i] = input_matrix(fs, target_row, target_col);
+
+    Matrix *d_target;
+    cudaMalloc((void **) &d_target, sizeof(Matrix)*num_targets);
+    cudaMemcpy(d_target, target_container, sizeof(Matrix)*num_targets, cudaMemcpyHostToDevice);
+
+    Matrix *d_result;
+    cudaMalloc((void **) &d_result, sizeof(Matrix)*num_targets);
+
+    dim3 gridDim(num_targets);
     dim3 blockDim(16, 16);
-    convolution<<<gridDim, blockDim>>>(d_kernel);
+    convolution<<<gridDim, blockDim>>>(d_kernel, d_target, d_result);
     cudaDeviceSynchronize();
+
+    Matrix *result_container = new Matrix[num_targets];
+    cudaError err = cudaMemcpy(result_container, d_result, sizeof(Matrix)*num_targets, cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        printf("CUDA error copying to Host: %s\n", cudaGetErrorString(err));
+    }
+
+    // print_matrix(result_container[0]);
+
+    delete target_container;
+    delete result_container;
+    cudaFree(d_kernel);
+    cudaFree(d_target);
+    cudaFree(d_result);
 }
 
 
