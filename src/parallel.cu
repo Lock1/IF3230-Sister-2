@@ -60,8 +60,8 @@ __device__ int supression_op(Matrix &kernel, Matrix &target, int row, int col) {
 __global__ void convolution(Matrix *d_kernel, Matrix *d_target, Matrix *d_result, int *d_ranges) {
     __shared__ Matrix kernel;
     kernel = *d_kernel;
-    int target_row = d_target[0].row_eff;
-    int target_col = d_target[0].col_eff;
+    int target_row = d_target[0].row_eff - kernel.row_eff + 1;
+    int target_col = d_target[0].col_eff - kernel.col_eff + 1;
     __syncthreads();
 
     for (int i = threadIdx.x; i < target_row; i += BLOCK_LENGTH) {
