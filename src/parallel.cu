@@ -223,6 +223,7 @@ void merge_sort(int *d_ptr, int size) {
     cudaDeviceSynchronize();
 
     merge_sort_device<<<1, BLOCK_LENGTH*BLOCK_LENGTH>>>(d_ptr, d_thread_chunk_sizes, size);
+    cudaDeviceSynchronize();
     cudaFree(d_thread_chunk_sizes);
 }
 
